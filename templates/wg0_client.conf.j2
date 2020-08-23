@@ -1,0 +1,23 @@
+[Interface]
+# Name = {{ client.name }}
+Address = {{ client.ip }}/24
+PrivateKey = {{ hostvars[inventory_hostname][client.name  + '_private_key'] }}
+DNS = 10.2.3.1
+# PublicKey = {{ hostvars[inventory_hostname][client.name  + '_public_key'] }}
+
+######
+# Peers
+{% for peer in peers %}
+
+####
+# Peer Config: {{ peer.name }}
+[Peer]
+PublicKey = {{ hostvars[peer.name]['wireguard_public_key_file']['content'] | b64decode }}
+AllowedIPs = {{ network }}
+Endpoint = {{ peer.endpoint_host }}:{{ peer.endpoint_port}}
+PersistentKeepalive = 15
+#######
+
+{% endfor %}
+# Peer End
+######

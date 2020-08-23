@@ -1,0 +1,15 @@
+network: 10.2.3.0/24
+
+peers:
+- name: mercury
+  endpoint_host: mercury.myhost.com
+  endpoint_port: 41194
+  ip: 10.2.3.1
+
+clients:
+- name: my_laptop
+  ip: 10.2.3.33
+- name: my_workstation
+  ip: 10.2.3.43
+- name: my_phone
+  ip: 10.2.3.53

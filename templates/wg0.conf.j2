@@ -1,0 +1,23 @@
+[Interface]
+# Name = {{ item.endpoint_host }}
+Address = {{ item.ip }}/24
+ListenPort = {{ item.endpoint_port }}
+PrivateKey = {{ hostvars[item.name]['wireguard_private_key_file']['content'] | b64decode }}
+SaveConfig = true
+
+######
+# Clients
+{% for item in clients %}
+####
+# Client Config: {{ item.name }}
+[Peer]
+PublicKey = {{ hostvars[inventory_hostname][item.name  + '_public_key'] }}
+{% if item.ip is defined %}
+AllowedIPs = {{ item.ip }}/32
+{% endif %}
+# End Client Config: {{ item.name }}
+#######
+
+{% endfor %}
+# Client End
+######

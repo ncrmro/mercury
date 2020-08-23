@@ -1,0 +1,35 @@
+- name: Create client wg dir in home
+  file:
+    path: "/etc/wireguard/clients/{{ client.name }}/"
+    state: directory
+
+- name: Generate client keys
+  shell:  umask 077; wg genkey | tee privatekey | wg pubkey > publickey
+  args:
+    chdir: "/etc/wireguard/clients/{{ client.name }}/"
+    creates: "/etc/wireguard/clients/{{ client.name }}/privatekey"
+
+- name: Slurp client private key
+  slurp:
+    src: "/etc/wireguard/clients/{{ client.name }}/privatekey"
+  register: wireguard_client_private_key_file
+
+- name: Slurp client public key
+  slurp:
+    src: "/etc/wireguard/clients/{{ client.name }}/publickey"
+  register: wireguard_client_public_key_file
+
+- set_fact: {"{{ client.name }}_private_key":"{{ wireguard_client_private_key_file['content'] | b64decode }}"}
+- set_fact: {"{{ client.name }}_public_key":"{{ wireguard_client_public_key_file['content'] | b64decode }}"}
+
+- name: Set up wg0 config
+  template:
+    src: templates/wg0_client.conf.j2
+    dest: /etc/wireguard/clients/{{client.name}}/{{client.name}}-wg0.conf
+    force: yes
+
+- name: Copy the client key to local dir
+  fetch:
+    src: /etc/wireguard/clients/{{client.name}}/{{client.name}}-wg0.conf
+    dest: "./clients/"
+    flat: true

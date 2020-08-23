@@ -1,0 +1,93 @@
+- name: Setup hosts.
+  hosts: wg_server
+  remote_user: root
+  become: true
+  become_method: sudo
+  vars_files:
+    - vars.yml
+  tasks:
+  - name: Update packages
+    apt:
+      update_cache: yes
+      cache_valid_time: 3600
+  - name: Install wireguard
+    apt:
+      name: wireguard
+  - name: Change to Wireguard directory and then generate keys
+    shell:  umask 077; wg genkey | tee privatekey | wg pubkey > publickey
+    args:
+      chdir: /etc/wireguard/
+      creates: /etc/wireguard/privatekey
+  - name: Slurp private key
+    slurp:
+      src: /etc/wireguard/privatekey
+    register: wireguard_private_key_file
+  - name: Slurp public key
+    slurp:
+      src: /etc/wireguard/publickey
+    register: wireguard_public_key_file
+  - name: enable ip forwarding
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: '1'
+      sysctl_set: yes
+      state: present
+      reload: yes
+  - name: Install wireguard
+    apt:
+      name: fail2ban
+  - ufw:
+      rule: allow
+      name: OpenSSH
+  - ufw:
+      rule: allow
+      port: "41194"
+      proto: udp
+
+- name: Setup clients.
+  hosts: wg_server
+  remote_user: root
+  vars_files:
+    - vars.yml
+  tasks:
+  - name: Stop wireguard before editing file.
+    systemd:
+      state: stopped
+      name: wg-quick@wg0
+######
+# Client
+  - include_role:
+      name: wg_client
+    vars:
+      client: "{{ item }}"
+    with_items: "{{ clients}}"
+#####
+- name: Setup hosts .
+  hosts: wg_server
+  remote_user: root
+  become: true
+  become_method: sudo
+  vars_files:
+    - vars.yml
+  tasks:
+  - name: Set up wg0 config
+    template:
+      src: templates/wg0.conf.j2
+      dest: /etc/wireguard/wg0.conf
+      force: yes
+    with_items: "{{ peers }}"
+  - name: Copy the client key to local dir
+    fetch:
+      src: "/etc/wireguard/wg0.conf"
+      dest: "./clients/"
+      flat: true
+  - name: Enable wireguard
+    systemd:
+      name: wg-quick@wg0
+      enabled: yes
+  - name: Make sure a wireguard is running
+    systemd:
+      state: started
+      name: wg-quick@wg0
+
+
