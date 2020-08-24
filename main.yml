@@ -33,16 +33,25 @@
       sysctl_set: yes
       state: present
       reload: yes
-  - name: Install wireguard
+  - name: Install fail2ban
     apt:
       name: fail2ban
-  - ufw:
+      name: ufw
+  - name: Allow open sssh
+    ufw:
       rule: allow
       name: OpenSSH
-  - ufw:
+  - name: Allow Wireguard Port
+    ufw:
       rule: allow
       port: "41194"
       proto: udp
+  - name: Enable UFW
+    ufw:
+      state: enabled
+  - name: Enable UFW
+    ufw:
+      state: reloaded
 
 - name: Setup clients.
   hosts: wg_server
